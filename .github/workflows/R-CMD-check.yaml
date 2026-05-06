@@ -41,6 +41,12 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
+      - name: Install BrAPI from GitHub
+        run: |
+          install.packages("remotes")
+          remotes::install_github("TriticeaeToolbox/BrAPI.R", force = TRUE)
+        shell: Rscript {0}
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
