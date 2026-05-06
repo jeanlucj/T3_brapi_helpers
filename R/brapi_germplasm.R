@@ -14,7 +14,7 @@
 #'
 #' @details If synonyms are present, only the first synonym is extracted.
 #'
-makeRowFromGermResult <- function(gr, study_id){
+make_row_from_germ_result <- function(gr, study_id){
   return(
     data.frame(
       study_db_id = study_id,
@@ -36,7 +36,7 @@ makeRowFromGermResult <- function(gr, study_id){
 #' returns a data frame of germplasm accessions associated with that trial
 #'
 #' @param study_id A single studyDbId to query germplasm for.
-#' @param brapiConnection A BrAPI connection object, typically from
+#' @param brapi_connection A BrAPI connection object, typically from
 #'   \code{BrAPI::createBrAPIConnection()}, with a \code{$search()} method.
 #' @param verbose Logical; if \code{TRUE}, print messages about the retrieval
 #'   process.
@@ -50,14 +50,14 @@ makeRowFromGermResult <- function(gr, study_id){
 #'
 #' @examples
 #' \dontrun{
-#' brapiConn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
+#' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' germ_df <- getGermplasmFromSingleTrial("8128", brapiConn)
+#' germ_df <- get_germplasm_from_single_trial("8128", brapi_conn)
 #' germ_df
 #' }
 #'
 #' @export
-getGermplasmFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
+get_germplasm_from_single_trial <- function(study_id, brapi_connection, verbose=F){
 
   get_fields_from_data <- function(data_list){
     if (verbose) cat("Retrieved metadata on", data_list$germplasmName, "\n")
@@ -68,7 +68,7 @@ getGermplasmFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
                   pedigree=data_list$pedigree))
   }
 
-  search_result <- brapiConnection$search("germplasm",
+  search_result <- brapi_connection$search("germplasm",
                                           body = list(studyDbIds = study_id))
 
   # Make a data.frame from the combined data
@@ -80,13 +80,13 @@ getGermplasmFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
 
 #' Get germplasm metadata for multiple trials
 #'
-#' Wrapper around \code{\link{getGermplasmFromSingleTrial}} to retrieve and combine
+#' Wrapper around \code{\link{get_germplasm_from_single_trial}} to retrieve and combine
 #' germplasm metadata for a vector of trial IDs.
 #'
 #' @param study_id_vec A character vector of studyDbIds to query.
-#' @param brapiConnection A BrAPI connection object as used in
-#'   \code{getGermplasmFromSingleTrial()}.
-#' @param verbose Logical; passed on to \code{getGermplasmFromSingleTrial()} to
+#' @param brapi_connection A BrAPI connection object as used in
+#'   \code{get_germplasm_from_single_trial()}.
+#' @param verbose Logical; passed on to \code{get_germplasm_from_single_trial()} to
 #'   control logging. If FALSE display purrr progress bar
 #'
 #' @return A data frame obtained by row-binding the results of each trial, with
@@ -98,34 +98,34 @@ getGermplasmFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
 #' \dontrun{
 #' brapi_conn <- BrAPI::getBrAPIConnection("T3/Wheat")
 #'
-#' all_germ <- T3BrapiHelpers::getGermplasmFromTrialVec(
+#' all_germ <- T3BrapiHelpers::get_germplasm_from_trial_vec(
 #'   c("10673", "10677"), brapi_conn)
 #' all_germ
 #' }
 #'
 #' @export
-getGermplasmFromTrialVec <- function(study_id_vec, brapiConnection, verbose=F){
+get_germplasm_from_trial_vec <- function(study_id_vec, brapi_connection, verbose=F){
 
-  germMeta_list <- purrr::map(
+  germ_meta_list <- purrr::map(
     study_id_vec,
-    getGermplasmFromSingleTrial,
-    brapiConnection = brapiConnection,
+    get_germplasm_from_single_trial,
+    brapi_connection = brapi_connection,
     verbose = verbose,
     .progress = !verbose
   )
 
-  return(dplyr::bind_rows(germMeta_list) |>
+  return(dplyr::bind_rows(germ_meta_list) |>
            janitor::clean_names())
 }
 
 #' Get genotyping protocol metadata for a single germplasm
 #'
 #' Queries the T3 AJAX interface using the \code{$wizard()} method of a
-#' brapiConnection to determine which genotyping protocols have been used for a
+#' brapi_connection to determine which genotyping protocols have been used for a
 #' specific germplasm
 #'
 #' @param germ_id The germplasmDbId for the accession of interest.
-#' @param brapiConnection A BrAPI connection object, typically from
+#' @param brapi_connection A BrAPI connection object, typically from
 #'   \code{BrAPI::createBrAPIConnection()}, with a \code{$wizard()} method.
 #' @param verbose Logical; if TRUE, prints progress messages.
 #'
@@ -141,18 +141,18 @@ getGermplasmFromTrialVec <- function(study_id_vec, brapiConnection, verbose=F){
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' winner_geno_protocols <- getGenoProtocolFromGermVec("1284387", brapi_conn)
+#' winner_geno_protocols <- get_geno_protocol_from_germ_vec("1284387", brapi_conn)
 #' winner_geno_protocols
 #' }
 #'
 #' @export
-getGenoProtocolFromSingleGerm <- function(germ_id, brapiConnection, verbose=F){
+get_geno_protocol_from_single_germ <- function(germ_id, brapi_connection, verbose=F){
 
   if (verbose){
     cat("Getting genotyping protocols for germplasmDbId", germ_id, "\n")
   }
 
-  protocols <- brapiConnection$wizard("genotyping_protocols",
+  protocols <- brapi_connection$wizard("genotyping_protocols",
                                       list(accessions=germ_id))
   protocols <- protocols$content$list
 
@@ -180,10 +180,10 @@ getGenoProtocolFromSingleGerm <- function(germ_id, brapiConnection, verbose=F){
 
 #' Determine genotyping protocol metadata for a set of accessions
 #'
-#' Wrapper for getGenoProtocolFromSingleGerm.
+#' Wrapper for get_geno_protocol_from_single_germ.
 #'
 #' @param germ_id_vec A vector of germplasm DbIds.
-#' @param brapiConnection A BrAPI connection object, typically from
+#' @param brapi_connection A BrAPI connection object, typically from
 #'   \code{BrAPI::createBrAPIConnection()}, with a \code{$wizard()} method.
 #' @param verbose Logical; if \code{FALSE} (default), display purrr progress bar
 #'   else print for each \code{germplasmDbId}
@@ -198,17 +198,17 @@ getGenoProtocolFromSingleGerm <- function(germ_id, brapiConnection, verbose=F){
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' germ_geno_protocols <- getGenoProtocolFromGermVec(
+#' germ_geno_protocols <- get_geno_protocol_from_germ_vec(
 #'   c("1284387", "1382716", "1415479"), brapi_conn)
 #' germ_geno_protocols
 #' }
 #'
 #' @export
-getGenoProtocolFromGermVec <- function(germ_id_vec, brapiConnection, verbose=F) {
+get_geno_protocol_from_germ_vec <- function(germ_id_vec, brapi_connection, verbose=F) {
 
   return(purrr::map(germ_id_vec,
-                    getGenoProtocolFromSingleGerm,
-                    brapiConnection=brapiConnection,
+                    get_geno_protocol_from_single_germ,
+                    brapi_connection=brapi_connection,
                     verbose=verbose,
                     .progress=!verbose) |>
            dplyr::bind_rows() |>
@@ -221,7 +221,7 @@ getGenoProtocolFromGermVec <- function(germ_id_vec, brapiConnection, verbose=F) 
 #' returns a data frame of trials associated with that germplasm
 #'
 #' @param germplasm_id A single germplasmDbId to query trials for.
-#' @param brapiConnection A BrAPI connection object, from
+#' @param brapi_connection A BrAPI connection object, from
 #'   \code{BrAPI::createBrAPIConnection()}.
 #' @param verbose Logical; if \code{TRUE}, print messages about the retrieval
 #'   process.
@@ -236,12 +236,12 @@ getGenoProtocolFromGermVec <- function(germ_id_vec, brapiConnection, verbose=F) 
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' trial_df <- getTrialFromSingleGermplasm("1284387", brapi_conn)
+#' trial_df <- get_trial_from_single_germplasm("1284387", brapi_conn)
 #' trial_df
 #' }
 #'
 #' @export
-getTrialFromSingleGermplasm <- function(germplasm_id, brapiConnection,
+get_trial_from_single_germplasm <- function(germplasm_id, brapi_connection,
                                         verbose=F){
 
   get_fields_from_data <- function(data_list){
@@ -251,7 +251,7 @@ getTrialFromSingleGermplasm <- function(germplasm_id, brapiConnection,
                   study_name=data_list$studyName))
   }
 
-  search_result <- brapiConnection$search("studies",
+  search_result <- brapi_connection$search("studies",
                                     body = list(germplasmDbIds = germplasm_id))
 
   # Make a data.frame from the combined data
@@ -263,13 +263,13 @@ getTrialFromSingleGermplasm <- function(germplasm_id, brapiConnection,
 
 #' Get trial metadata for multiple germplasms
 #'
-#' Wrapper around \code{\link{getTrialFromSingleGermplasm}} to retrieve and
+#' Wrapper around \code{\link{get_trial_from_single_germplasm}} to retrieve and
 #' combine trial metadata for a vector of germplasm IDs.
 #'
 #' @param germplasm_id_vec A character vector of germplasmDbIds to query.
-#' @param brapiConnection A BrAPI connection object as used in
-#'   \code{getTrialFromSingleGermplasm()}.
-#' @param verbose Logical; passed on to \code{getTrialFromSingleGermplasm()} to
+#' @param brapi_connection A BrAPI connection object as used in
+#'   \code{get_trial_from_single_germplasm()}.
+#' @param verbose Logical; passed on to \code{get_trial_from_single_germplasm()} to
 #'   control logging. If FALSE display purrr progress bar
 #'
 #' @return A data frame obtained by row-binding the results of each germplasm,
@@ -281,21 +281,21 @@ getTrialFromSingleGermplasm <- function(germplasm_id, brapiConnection,
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' all_trial <- getTrialFromGermplasmVec(c("1284387", "1382716"), brapi_conn)
+#' all_trial <- get_trial_from_germplasm_vec(c("1284387", "1382716"), brapi_conn)
 #' all_trial
 #' }
 #'
 #' @export
-getTrialFromGermplasmVec <- function(germplasm_id_vec, brapiConnection,
+get_trial_from_germplasm_vec <- function(germplasm_id_vec, brapi_connection,
                                      verbose=F){
 
-  germMeta_list <- purrr::map(
+  germ_meta_list <- purrr::map(
     germplasm_id_vec,
-    getTrialFromSingleGermplasm,
-    brapiConnection = brapiConnection,
+    get_trial_from_single_germplasm,
+    brapi_connection = brapi_connection,
     verbose = verbose,
     .progress = !verbose
   )
 
-  return(dplyr::bind_rows(germMeta_list) |> janitor::clean_names())
+  return(dplyr::bind_rows(germ_meta_list) |> janitor::clean_names())
 }

@@ -15,16 +15,15 @@
 #'   other_studies: the study_db_id and
 #'   n: the number of germplasms in common with the focal study
 #'
-#' @importFrom T3BrapiHelpers getGermplasmFromSingleTrial getTrialFromGermplasmVec
 #' @importFrom janitor tabyl
 #' @importFrom dplyr filter rename select
 #'
 #' @examples
 #' \dontrun{
-#' brapiConn <- BrAPI::createBrAPIConnection("T3/Wheat", is_breedbase = TRUE)
+#' brapi_conn <- BrAPI::createBrAPIConnection("T3/Wheat", is_breedbase = TRUE)
 #'
 #' # Retrieve other studies based on a focal study
-#' df <- find_other_studies_evaluating_same_germplasm("10674", brapiConn)
+#' df <- find_other_studies_evaluating_same_germplasm("10674", brapi_conn)
 #' df
 #' }
 #'
@@ -32,15 +31,22 @@
 find_other_studies_evaluating_same_germplasm <- function(study_id, brapi_conn,
                                                          min_germ_common=5){
   this_study_germ <-
-    T3BrapiHelpers::getGermplasmFromSingleTrial(study_id, brapi_conn)
+    T3BrapiHelpers::get_germplasm_from_single_trial(study_id, brapi_conn)
+
+  get_trial_ids_from_germplasm_id <- function(germplasm_id, brapi_conn){
+    return(brapi_conn$wizard(data_type = "trials",
+                             filters=list(accessions=germplasm_id))$data$ids)
+  }
 
   other_studies <- this_study_germ$germplasm_db_id |>
-    T3BrapiHelpers::getTrialFromGermplasmVec(brapi_conn)
+    purrr::map(.f=get_trial_ids_from_germplasm_id,
+               brapi_conn=brapi_conn,
+               .progress=TRUE)
 
-  other_studies_tabyl <- janitor::tabyl(other_studies$study_db_id) |>
+  other_studies_tabyl <- janitor::tabyl(unlist(other_studies)) |>
     dplyr::select(-percent) |>
-    dplyr::rename(other_studies=`other_studies$study_db_id`) |>
-    dplyr::filter(other_studies != study_id) |>
+    dplyr::rename(other_study_db_id=`unlist(other_studies)`) |>
+    dplyr::filter(other_study_db_id != study_id) |>
     dplyr::filter(n >= min_germ_common)
 
   return(other_studies_tabyl)

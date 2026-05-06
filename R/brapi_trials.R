@@ -5,7 +5,7 @@
 #' used by functions that assemble trial metadata tables.
 #'
 #' @param tr A list representing a single trial result from a BrAPI
-#'   \code{/studies} endpoint, typically \code{brapiConnection$get("studies/ID")$content$result}.
+#'   \code{/studies} endpoint, typically \code{brapi_connection$get("studies/ID")$content$result}.
 #'
 #' @return A one-row \code{data.frame} with columns such as
 #'   \code{study_db_id}, \code{studyName}, \code{studyType},
@@ -16,7 +16,7 @@
 #' @details This function assumes the infix operator \code{\%||\%} is available
 #'   in the calling environment to replace \code{NULL} with \code{NA}.
 #'
-makeRowFromTrialResult <- function(tr){
+make_row_from_trial_result <- function(tr){
   toRet <- tibble::tibble(
     study_db_id = tr$studyDbId %||% NA_integer_,
     study_name = tr$studyName %||% NA_character_,
@@ -46,7 +46,7 @@ makeRowFromTrialResult <- function(tr){
 #'
 #' @param study_id_vec A character vector of BrAPI study IDs (studyDbId values)
 #'   to query.
-#' @param brapiConnection A BrAPI connection object, typically created by
+#' @param brapi_connection A BrAPI connection object, typically created by
 #'   \code{BrAPI::createBrAPIConnection()},
 #'   with \code{$get()} method available.
 #'
@@ -62,21 +62,21 @@ makeRowFromTrialResult <- function(tr){
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
 #' # Retrieve metadata for two trials
-#' df <- getTrialMetaDataFromTrialVec(c("8128", "9421"), brapi_conn)
+#' df <- get_trial_meta_data_from_trial_vec(c("8128", "9421"), brapi_conn)
 #' df
 #' }
 #'
 #' @export
-getTrialMetaDataFromTrialVec <- function(study_id_vec, brapiConnection){
+get_trial_meta_data_from_trial_vec <- function(study_id_vec, brapi_connection){
 
-  getSingleStudy <- function(id){
-    return(brapiConnection$get(paste0("studies/", id))$content$result)
+  get_single_study <- function(id){
+    return(brapi_connection$get(paste0("studies/", id))$content$result)
   }
 
-  trials_list <- lapply(study_id_vec, getSingleStudy)
+  trials_list <- lapply(study_id_vec, get_single_study)
 
   trials_df <- trials_list |>
-    lapply(makeRowFromTrialResult) |>
+    lapply(make_row_from_trial_result) |>
     dplyr::bind_rows() |>
     janitor::clean_names()
 
@@ -89,7 +89,7 @@ getTrialMetaDataFromTrialVec <- function(study_id_vec, brapiConnection){
 #' a given common crop name, handles polling if needed, and compiles the
 #' results into a trial metadata data frame.
 #'
-#' @param brapiConnection A BrAPI connection object, typically created by
+#' @param brapi_connection A BrAPI connection object, typically created by
 #'   \code{BrAPI::createBrAPIConnection()},
 #'   with \code{$search()} method available.
 #' @param crop_name A character string giving the BrAPI \code{commonCropName}
@@ -107,21 +107,21 @@ getTrialMetaDataFromTrialVec <- function(study_id_vec, brapiConnection){
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
 #' # Retrieve trial metadata for "Wheat"
-#' all_trials <- getAllTrialMetaData(brapi_conn, "Wheat")
+#' all_trials <- get_all_trial_meta_data(brapi_conn, "Wheat")
 #' all_trials
 #' }
 #'
 #' @export
-getAllTrialMetaData <- function(brapiConnection, crop_name){
+get_all_trial_meta_data <- function(brapi_connection, crop_name){
 
   ## pull list of all trials from T3
-  trials_search <- brapiConnection$search("studies",
+  trials_search <- brapi_connection$search("studies",
     body = list(commonCropNames = crop_name)
   )
 
   # Compile the BrAPI results into a data frame
   trials_df <- trials_search$combined_data |>
-    lapply(makeRowFromTrialResult) |>
+    lapply(make_row_from_trial_result) |>
     dplyr::bind_rows() |>
     janitor::clean_names()
 
@@ -136,7 +136,7 @@ getAllTrialMetaData <- function(brapiConnection, crop_name){
 #'
 #' @param study_id_vec A character vector of BrAPI study IDs (studyDbId values)
 #'   to query.
-#' @param brapiConnection A BrAPI connection object, typically created by
+#' @param brapi_connection A BrAPI connection object, typically created by
 #'   \code{BrAPI::createBrAPIConnection()}, with \code{$search()} method.
 #' @param id_or_name A string. If "name" return the names of the traits else
 #'   return the trait DB IDs.
@@ -151,27 +151,27 @@ getAllTrialMetaData <- function(brapiConnection, crop_name){
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' traits <- getTraitsFromTrialVec(c("8128", "9421"), brapi_conn)
+#' traits <- get_traits_from_trial_vec(c("8128", "9421"), brapi_conn)
 #' traits
 #' }
 #'
 #' @export
-getTraitsFromTrialVec <- function(study_id_vec, brapiConnection,
+get_traits_from_trial_vec <- function(study_id_vec, brapi_connection,
                                   id_or_name="name", verbose=F){
   # make tibbles with names and ids for traits in each study
-  trialTraitsList <- purrr::map(study_id_vec,
-                                getTraitsFromSingleTrial,
-                                brapiConnection=brapiConnection,
+  trial_traits_list <- purrr::map(study_id_vec,
+                                get_traits_from_single_trial,
+                                brapi_connection=brapi_connection,
                                 verbose=verbose,
                                 .progress=!verbose)
   # Compile a tibble with either names or ids in one cell
   id_or_name <- ifelse(id_or_name == "name", 2, 1)
-  makeStudyIDrow <- function(idx){
+  make_study_id_row <- function(idx){
     return(tibble::tibble(study_id=study_id_vec[idx],
-                          traits=list(trialTraitsList[[idx]][, id_or_name])))
+                          traits=list(trial_traits_list[[idx]][, id_or_name])))
   }
 
-  return(lapply(1:length(study_id_vec), makeStudyIDrow) |>
+  return(lapply(1:length(study_id_vec), make_study_id_row) |>
            dplyr::bind_rows() |>
            janitor::clean_names())
 }
@@ -182,7 +182,7 @@ getTraitsFromTrialVec <- function(study_id_vec, brapiConnection,
 #' returns a data frame of traits and their DbIds measured in that trial
 #'
 #' @param study_id A single studyDbId to query germplasm for.
-#' @param brapiConnection A BrAPI connection object, typically from
+#' @param brapi_connection A BrAPI connection object, typically from
 #'   \code{BrAPI::createBrAPIConnection()}, with a \code{$search()} method.
 #' @param verbose Logical; if \code{TRUE}, print messages about the retrieval
 #'   process.
@@ -198,12 +198,12 @@ getTraitsFromTrialVec <- function(study_id_vec, brapiConnection,
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' traits_df <- getTraitsFromSingleTrial("8128", brapi_conn)
+#' traits_df <- get_traits_from_single_trial("8128", brapi_conn)
 #' traits_df
 #' }
 #'
 #' @export
-getTraitsFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
+get_traits_from_single_trial <- function(study_id, brapi_connection, verbose=F){
 
   get_fields_from_data <- function(data_list){
     if (verbose) cat("Retrieved metadata on",
@@ -212,7 +212,7 @@ getTraitsFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
                   observation_variable_name=data_list$observationVariableName))
   }
 
-  search_result <- brapiConnection$search("variables",
+  search_result <- brapi_connection$search("variables",
                                           body = list(studyDbIds = study_id))
 
   # Make a data.frame from the combined data
@@ -229,7 +229,7 @@ getTraitsFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
 #'
 #' @param loc_vec A vector of location names or DB IDs for which you want lat,
 #'   long, and elevation values
-#' @param brapiConnection A BrAPI connection object, typically from
+#' @param brapi_connection A BrAPI connection object, typically from
 #'   \code{BrAPI::createBrAPIConnection()}, with a \code{$search()} method.
 #' @param id_or_name A string. If "name" will expect loc_vec to be a vector of
 #'   location names else a vector of location DB IDs.
@@ -243,16 +243,16 @@ getTraitsFromSingleTrial <- function(study_id, brapiConnection, verbose=F){
 #' \dontrun{
 #' brapi_conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
 #'
-#' locs_df <- getLatLongElevFromLocationVec(c("31", "143"), brapi_conn)
+#' locs_df <- get_lat_long_elev_from_location_vec(c("31", "143"), brapi_conn)
 #' locs_df
 #' }
 #'
 #' @export
 # I don't know if I'm doing it wrong, but the response is always ALL the
 # locations, so I have to filter after
-getLatLongElevFromLocationVec <- function(loc_vec, brapiConnection,
+get_lat_long_elev_from_location_vec <- function(loc_vec, brapi_connection,
                                           id_or_name="name"){
-  locSearchToRow <- function(locList){
+  loc_search_to_row <- function(locList){
     coords <- unlist(locList$coordinates$geometry$coordinates)
 
     dplyr::tibble(
@@ -266,15 +266,15 @@ getLatLongElevFromLocationVec <- function(loc_vec, brapiConnection,
   }
 
   if (id_or_name == "name"){
-    loc_search <- brapiConnection$search("locations",
+    loc_search <- brapi_connection$search("locations",
                                          body=list(locationNames = loc_vec))
   } else{
-    loc_search <- brapiConnection$search("locations",
+    loc_search <- brapi_connection$search("locations",
                                          body=list(locationDbIds = loc_vec))
   }
   loc_search <- loc_search$combined_data
 
-  loc_df <- lapply(loc_search, locSearchToRow) |>
+  loc_df <- lapply(loc_search, loc_search_to_row) |>
     dplyr::bind_rows()
 
   return(loc_df |> janitor::clean_names())
