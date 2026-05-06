@@ -17,7 +17,7 @@
 #'   in the calling environment to replace \code{NULL} with \code{NA}.
 #'
 make_row_from_trial_result <- function(tr){
-  toRet <- tibble::tibble(
+  to_ret <- tibble::tibble(
     study_db_id = tr$studyDbId %||% NA_integer_,
     study_name = tr$studyName %||% NA_character_,
     study_type = tr$studyType %||% NA_character_,
@@ -31,12 +31,12 @@ make_row_from_trial_result <- function(tr){
     experimental_design = tr$experimentalDesign$description,
     create_date = tr$additionalInfo$createDate %||% NA
   )
-  toRet <- toRet |> dplyr::mutate(
+  to_ret <- to_ret |> dplyr::mutate(
     start_date = as.POSIXct(start_date, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     end_date = as.POSIXct(end_date, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     create_date = as.POSIXct(create_date, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
-  return(toRet)
+  return(to_ret)
 }
 
 #' Retrieve metadata for a set of trials by study IDs
@@ -252,13 +252,13 @@ get_traits_from_single_trial <- function(study_id, brapi_connection, verbose=F){
 # locations, so I have to filter after
 get_lat_long_elev_from_location_vec <- function(loc_vec, brapi_connection,
                                           id_or_name="name"){
-  loc_search_to_row <- function(locList){
-    coords <- unlist(locList$coordinates$geometry$coordinates)
+  loc_search_to_row <- function(loc_list){
+    coords <- unlist(loc_list$coordinates$geometry$coordinates)
 
     dplyr::tibble(
-      location_db_id = locList$locationDbId %||% NA,
-      location_name = locList$locationName %||% NA,
-      abbreviation = locList$abbreviation %||% NA,
+      location_db_id = loc_list$locationDbId %||% NA,
+      location_name = loc_list$locationName %||% NA,
+      abbreviation = loc_list$abbreviation %||% NA,
       latitude = ifelse(!is.null(coords) & length(coords) >= 2, coords[2], NA),
       longitude = ifelse(!is.null(coords) & length(coords) >= 1, coords[1], NA),
       elevation = ifelse(!is.null(coords) & length(coords) >= 3, coords[3], NA)

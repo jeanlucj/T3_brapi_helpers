@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-T3BrapiHelpers is an R package providing helper functions for working with BrAPI (Breeding API) services and The Triticeae Toolbox (T3). The package simplifies querying BrAPI endpoints and transforming responses into tidy data frames for downstream analysis in plant breeding workflows.
+T3_brapi_helpers is an R package providing helper functions for working with BrAPI (Breeding API) services and The Triticeae Toolbox (T3). The package simplifies querying BrAPI endpoints and transforming responses into tidy data frames for downstream analysis in plant breeding workflows.
 
 ## Development Commands
 
@@ -18,7 +18,7 @@ T3BrapiHelpers is an R package providing helper functions for working with BrAPI
 
 ### Documentation
 - Documentation is generated from roxygen2 comments in R files
-- Website is built with pkgdown and deployed to https://jeanlucj.github.io/T3BrapiHelpers/
+- Website is built with pkgdown and deployed to https://jeanlucj.github.io/T3_brapi_helpers/
 - After changing roxygen2 comments, always run `devtools::document()` to update man/ files
 
 ## Architecture
@@ -74,8 +74,8 @@ All exported functions expect a BrAPI connection object as an argument:
 brapi_conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
 
 # Use with helper functions
-trials <- T3BrapiHelpers::get_all_trial_meta_data(brapi_conn, "Wheat")
-germplasm <- T3BrapiHelpers::get_germplasm_from_single_trial("8128", brapi_conn)
+trials <- T3_brapi_helpers::get_all_trial_meta_data(brapi_conn, "Wheat")
+germplasm <- T3_brapi_helpers::get_germplasm_from_single_trial("8128", brapi_conn)
 ```
 
 Key BrAPI connection methods used internally:

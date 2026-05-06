@@ -6,11 +6,11 @@ editor_options:
 
 <!-- README.md is generated from README.Rmd. Please edit README.Rmd -->
 
-# T3BrapiHelpers
+# T3_brapi_helpers
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/jeanlucj/T3BrapiHelpers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/jeanlucj/T3BrapiHelpers/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/jeanlucj/T3_brapi_helpers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/jeanlucj/T3_brapi_helpers/actions/workflows/R-CMD-check.yaml)
 
 <!-- badges: end -->
 
@@ -38,8 +38,8 @@ You can install the development version from GitHub:
 
 ``` r
 # install.packages("pak")
-pak::pak("jeanlucj/T3BrapiHelpers")
-#>  Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠋] Resolving jeanlucj/T3BrapiHelpers Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠙] Resolving jeanlucj/T3BrapiHelpers Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠹] Resolving jeanlucj/T3BrapiHelpers Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠸] Resolving jeanlucj/T3BrapiHelpers Found [30m[48;5;249m 11 [49m[39m deps for [30m[48;5;249m 1/1 [49m[39m pkgs [⠼] Resolving standard (CRAN/BioC) packages                                                                             
+pak::pak("jeanlucj/T3_brapi_helpers")
+#>  Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠋] Resolving jeanlucj/T3_brapi_helpers Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠙] Resolving jeanlucj/T3_brapi_helpers Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠹] Resolving jeanlucj/T3_brapi_helpers Found [30m[48;5;249m 1 [49m[39m deps for [30m[48;5;249m 0/1 [49m[39m pkgs [⠸] Resolving jeanlucj/T3_brapi_helpers Found [30m[48;5;249m 11 [49m[39m deps for [30m[48;5;249m 1/1 [49m[39m pkgs [⠼] Resolving standard (CRAN/BioC) packages                                                                             
 #> [36mℹ[39m No downloads are needed
 #>  Installing...              [32m✔[39m 1 pkg + 37 deps: kept 38 [38;5;249m[38;5;249m[1.1s][38;5;249m[39m
 ```
@@ -48,7 +48,7 @@ pak::pak("jeanlucj/T3BrapiHelpers")
 
 ## Package goals
 
-The main goals of **T3BrapiHelpers** are to:
+The main goals of **T3_brapi_helpers** are to:
 
 -   simplify common BrAPI queries used in T3 pipelines
 -   reduce redundant code going from BrAPI responses to data.frames
@@ -64,7 +64,7 @@ brapiConn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org",
                                           is_breedbase = TRUE)
 
 # Retrieve trial metadata for "Wheat"
-all_trials <- T3BrapiHelpers::getAllTrialMetaData(brapiConn, "Wheat")
+all_trials <- T3_brapi_helpers::getAllTrialMetaData(brapiConn, "Wheat")
 head(all_trials)
 #> # A tibble: 6 × 12
 #>   study_db_id study_name     study_type study_description location_name trial_db_id
@@ -97,10 +97,10 @@ wheatConn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org",
 predict_trial_vec_Wheat <- c("10673", "10674", "10675", "10676", "10677", "10678", "10679", "10680", "10681")
 
 predict_trial_meta <- predict_trial_vec_Wheat |>
-  T3BrapiHelpers::getTrialMetaDataFromTrialVec(wheatConn)
+  T3_brapi_helpers::getTrialMetaDataFromTrialVec(wheatConn)
 
 predict_germ <- predict_trial_meta$study_db_id |>
-  T3BrapiHelpers::getGermplasmFromTrialVec(wheatConn)
+  T3_brapi_helpers::getGermplasmFromTrialVec(wheatConn)
 #> ■■■■ 11% | ETA: 0s ■■■■■■■■ 22% | ETA: 9s ■■■■■■■■■■■ 33% | ETA: 10s
 #> ■■■■■■■■■■■■■■ 44% | ETA: 10s ■■■■■■■■■■■■■■■■■■ 56% | ETA: 12s
 #> ■■■■■■■■■■■■■■■■■■■■■ 67% | ETA: 8s ■■■■■■■■■■■■■■■■■■■■■■■■ 78% | ETA: 5s
@@ -122,7 +122,7 @@ nAccPerTrial <- predict_germ |> dplyr::group_by(studyDbId) |>
 ## Documentation
 
 Full documentation is available at\
-<https://jeanlucj.github.io/T3BrapiHelpers/>
+<https://jeanlucj.github.io/T3_brapi_helpers/>
 
 --------------------------------------------------------------------------------
 

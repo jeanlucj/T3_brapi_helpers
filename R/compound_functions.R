@@ -31,7 +31,7 @@
 find_other_studies_evaluating_same_germplasm <- function(study_id, brapi_conn,
                                                          min_germ_common=5){
   this_study_germ <-
-    T3BrapiHelpers::get_germplasm_from_single_trial(study_id, brapi_conn)
+    T3_brapi_helpers::get_germplasm_from_single_trial(study_id, brapi_conn)
 
   get_trial_ids_from_germplasm_id <- function(germplasm_id, brapi_conn){
     return(brapi_conn$wizard(data_type = "trials",

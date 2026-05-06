@@ -13,10 +13,10 @@ knitr::opts_chunk$set(
 )
 ```
 
-# T3BrapiHelpers
+# T3_brapi_helpers
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/jeanlucj/T3BrapiHelpers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/jeanlucj/T3BrapiHelpers/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/jeanlucj/T3_brapi_helpers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/jeanlucj/T3_brapi_helpers/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Helpers for working with **BrAPI** services and **The Triticeae Toolbox (T3)**
@@ -61,14 +61,14 @@ if (!require("BrAPI")){
   install_github("TriticeaeToolbox/BrAPI.R")
 }
 
-devtools::install_github("jeanlucj/T3BrapiHelpers")
+devtools::install_github("jeanlucj/T3_brapi_helpers")
 ```
 
 ---
 
 ## Package goals
 
-The main goals of **T3BrapiHelpers** are to:
+The main goals of **T3_brapi_helpers** are to:
 
 - simplify common BrAPI queries used in T3 pipelines
 - reduce redundant code going from BrAPI responses to data.frames
@@ -84,7 +84,7 @@ brapiConn <- BrAPI::createBrAPIConnection("wheat-sandbox.triticeaetoolbox.org",
                                           is_breedbase = TRUE)
 
 # Retrieve trial metadata for "Wheat"
-all_trials <- T3BrapiHelpers::getAllTrialMetaData(brapiConn, "Wheat")
+all_trials <- T3_brapi_helpers::getAllTrialMetaData(brapiConn, "Wheat")
 head(all_trials)
 ```
 
@@ -106,10 +106,10 @@ wheatConn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org",
 predict_trial_vec_Wheat <- c("10673", "10674", "10675", "10676", "10677", "10678", "10679", "10680", "10681")
 
 predict_trial_meta <- predict_trial_vec_Wheat |>
-  T3BrapiHelpers::getTrialMetaDataFromTrialVec(wheatConn)
+  T3_brapi_helpers::getTrialMetaDataFromTrialVec(wheatConn)
 
 predict_germ <- predict_trial_meta$study_db_id |>
-  T3BrapiHelpers::getGermplasmFromTrialVec(wheatConn)
+  T3_brapi_helpers::getGermplasmFromTrialVec(wheatConn)
 
 nAccPerTrial <- predict_germ |> dplyr::group_by(studyDbId) |>
   dplyr::summarise(nAccInTrial=dplyr::n())
@@ -126,7 +126,7 @@ nAccPerTrial <- predict_germ |> dplyr::group_by(studyDbId) |>
 ## Documentation
 
 Full documentation is available at  
-https://jeanlucj.github.io/T3BrapiHelpers/
+https://jeanlucj.github.io/T3_brapi_helpers/
 
 ---
 

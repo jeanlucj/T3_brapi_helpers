@@ -98,7 +98,7 @@ get_germplasm_from_single_trial <- function(study_id, brapi_connection, verbose=
 #' \dontrun{
 #' brapi_conn <- BrAPI::getBrAPIConnection("T3/Wheat")
 #'
-#' all_germ <- T3BrapiHelpers::get_germplasm_from_trial_vec(
+#' all_germ <- T3_brapi_helpers::get_germplasm_from_trial_vec(
 #'   c("10673", "10677"), brapi_conn)
 #' all_germ
 #' }
