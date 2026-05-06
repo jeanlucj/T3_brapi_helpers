@@ -37,8 +37,10 @@ jobs:
           needs: website
 
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, preview = FALSE)
         shell: Rscript {0}
+        env:
+          _R_CHECK_FORCE_SUGGESTS_: false
 
       - name: Deploy to GitHub pages 🚀
         if: github.event_name != 'pull_request'
