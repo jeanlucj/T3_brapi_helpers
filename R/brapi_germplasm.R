@@ -299,3 +299,225 @@ get_trial_from_germplasm_vec <- function(germplasm_id_vec, brapi_connection,
 
   return(dplyr::bind_rows(germ_meta_list) |> janitor::clean_names())
 }
+
+#' Get the synonyms of a set of accessions, keyed by primary germplasm name
+#'
+#' Looks up germplasm records by their **primary** \code{germplasmName} and
+#' returns the synonyms recorded for each. This matters when an accession was
+#' genotyped under a *preliminary* experimental line name that was later demoted
+#' to a synonym after a *final* name was assigned: a VCF (or any other data
+#' source) may carry the sample under the synonym while downstream analysis keys
+#' on the primary name.
+#'
+#' Queries the BrAPI \code{/search/germplasm} endpoint with
+#' \code{germplasmNames}, batched to keep each request small, and collates the
+#' synonyms returned for each matched record.
+#'
+#' @param germplasm_names Character vector of primary germplasm names to look up.
+#' @param brapi_connection A BrAPI connection object, typically from
+#'   \code{BrAPI::createBrAPIConnection()}, with a \code{$search()} method.
+#' @param batch_size Integer; maximum number of names per BrAPI request
+#'   (default 500).
+#' @param pause Numeric; seconds to wait between batches, to avoid tripping the
+#'   server's rate limit (default 0).
+#' @param max_retries Integer; attempts per batch on a transient failure (e.g. an
+#'   HTTP 403), with exponential backoff between attempts (default 3).
+#' @param verbose Logical; if \code{TRUE}, print per-batch progress messages.
+#'
+#' @return A tibble with one row per (primary, synonym) pair and columns
+#'   \code{primary_name} and \code{synonym}. Accessions with no synonyms (or that
+#'   are not found) contribute no rows.
+#'
+#' @details Synonyms are returned by BrAPI either as bare strings or as objects
+#'   with a \code{synonym} field; both shapes are handled. A batch that keeps
+#'   failing after \code{max_retries} is warned about and skipped (its accessions
+#'   simply contribute no synonym rows) rather than aborting the whole call.
+#'
+#' @examples
+#' \dontrun{
+#' brapi_conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
+#' get_synonyms_from_germplasm_names(c("ACC_ONE", "ACC_TWO"), brapi_conn)
+#' }
+#'
+#' @importFrom dplyr bind_rows distinct
+#' @importFrom tibble tibble
+#' @export
+get_synonyms_from_germplasm_names <- function(germplasm_names,
+                                              brapi_connection,
+                                              batch_size = 500L,
+                                              pause = 0,
+                                              max_retries = 3L,
+                                              verbose = FALSE) {
+
+  germplasm_names <- unique(as.character(germplasm_names))
+  germplasm_names <- germplasm_names[!is.na(germplasm_names) &
+                                       nzchar(germplasm_names)]
+  empty <- tibble::tibble(primary_name = character(0), synonym = character(0))
+  if (length(germplasm_names) == 0) return(empty)
+
+  # BrAPI synonyms come back either as bare strings or as {synonym, type}
+  # objects; pull just the synonym string from whichever shape is present.
+  extract_synonyms <- function(syn) {
+    if (is.null(syn) || length(syn) == 0) return(character(0))
+    out <- vapply(syn, function(s) {
+      if (is.list(s)) {
+        v <- s[["synonym"]]
+        if (is.null(v)) NA_character_ else as.character(v)[1]
+      } else {
+        as.character(s)[1]
+      }
+    }, character(1))
+    unique(out[!is.na(out) & nzchar(out)])
+  }
+
+  # One request, with retry/backoff. Returns the combined_data list on success,
+  # or NULL on persistent failure. A failed BrAPI search returns an atomic value
+  # (the 403 warning result), so a non-atomic response that yields combined_data
+  # without erroring is the success signal; an empty (NULL) combined_data is a
+  # legitimate "no matches" answer.
+  fetch_once <- function(names_vec) {
+    for (attempt in seq_len(max_retries)) {
+      sr <- tryCatch(
+        brapi_connection$search("germplasm",
+                                body = list(germplasmNames = as.list(names_vec))),
+        error = function(e) e)
+      if (!inherits(sr, "error") && !is.atomic(sr)) {
+        cd <- tryCatch(sr$combined_data, error = function(e) NA)
+        if (!identical(cd, NA)) return(list(ok = TRUE, recs = cd))
+      }
+      if (attempt < max_retries) Sys.sleep(2^attempt)
+    }
+    list(ok = FALSE, recs = NULL)
+  }
+
+  # Fetch a set of names, bisecting on a PERSISTENT failure so one "poison" name
+  # (e.g. one whose payload trips a server 403/WAF rule) can't sink its whole
+  # batch -- the rest of the chunk's synonyms are still recovered, and only the
+  # offending single name is skipped (with a warning).
+  fetch_recursive <- function(names_vec) {
+    res <- fetch_once(names_vec)
+    if (res$ok) return(res$recs)
+    if (length(names_vec) <= 1L) {
+      warning("germplasm search persistently failed for name: ",
+              paste(names_vec, collapse = ", "), " - skipping")
+      return(list())
+    }
+    mid <- length(names_vec) %/% 2L
+    c(fetch_recursive(names_vec[seq_len(mid)]),
+      fetch_recursive(names_vec[(mid + 1L):length(names_vec)]))
+  }
+
+  batches <- split(germplasm_names,
+                   ceiling(seq_along(germplasm_names) / batch_size))
+
+  rows <- list()
+  for (i in seq_along(batches)) {
+    batch <- batches[[i]]
+    if (verbose) message(sprintf("  synonym lookup batch %d/%d (%d names)",
+                                  i, length(batches), length(batch)))
+    recs <- fetch_recursive(batch)
+    if (pause > 0 && i < length(batches)) Sys.sleep(pause)
+    if (length(recs) == 0) next
+    for (x in recs) {
+      primary <- x$germplasmName
+      if (is.null(primary) || is.na(primary) || !nzchar(primary)) next
+      syns <- extract_synonyms(x$synonyms)
+      if (length(syns) == 0) next
+      rows[[length(rows) + 1L]] <- tibble::tibble(primary_name = primary,
+                                                  synonym = syns)
+    }
+  }
+
+  if (length(rows) == 0) return(empty)
+  dplyr::distinct(dplyr::bind_rows(rows))
+}
+
+#' Build an alias -> primary lookup vector for a set of accessions
+#'
+#' Wraps \code{\link{get_synonyms_from_germplasm_names}} into a named character
+#' vector that canonicalizes any known alias (primary name OR synonym) back to
+#' the primary germplasm name. Pass this to
+#' \code{\link{canonicalize_to_primary}} to relabel data (e.g. VCF sample IDs)
+#' that may carry accessions under a synonym.
+#'
+#' @param germplasm_names Character vector of primary germplasm names.
+#' @param brapi_connection A BrAPI connection object with a \code{$search()}
+#'   method. Ignored when \code{syn_df} is supplied.
+#' @param batch_size Integer; passed to
+#'   \code{get_synonyms_from_germplasm_names()}.
+#' @param verbose Logical; passed through for per-batch progress.
+#' @param syn_df Optional precomputed tibble of \code{primary_name}/\code{synonym}
+#'   pairs (as returned by \code{get_synonyms_from_germplasm_names()}). When
+#'   supplied, no BrAPI query is made -- useful for assembling the lookup from
+#'   checkpointed results.
+#'
+#' @return A named character vector whose names are aliases (every primary name,
+#'   mapped to itself, plus every synonym, mapped to its primary) and whose
+#'   values are the corresponding primary names.
+#'
+#' @details Primary names take precedence over synonym aliases of the same
+#'   string. If a synonym string maps to more than one distinct primary, the
+#'   first is kept and a warning is emitted (preliminary line names are normally
+#'   unique, so this should be rare).
+#'
+#' @examples
+#' \dontrun{
+#' brapi_conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
+#' lk <- build_synonym_lookup(c("ACC_ONE", "ACC_TWO"), brapi_conn)
+#' canonicalize_to_primary(c("PRELIM_123", "ACC_TWO"), lk)
+#' }
+#'
+#' @export
+build_synonym_lookup <- function(germplasm_names, brapi_connection = NULL,
+                                 batch_size = 500L, verbose = FALSE,
+                                 syn_df = NULL) {
+
+  germplasm_names <- unique(as.character(germplasm_names))
+  germplasm_names <- germplasm_names[!is.na(germplasm_names) &
+                                       nzchar(germplasm_names)]
+
+  if (is.null(syn_df)) {
+    syn_df <- get_synonyms_from_germplasm_names(
+      germplasm_names, brapi_connection,
+      batch_size = batch_size, verbose = verbose)
+  }
+
+  # Primaries first so they win any collision with a synonym of the same string.
+  alias   <- c(germplasm_names, syn_df$synonym)
+  primary <- c(germplasm_names, syn_df$primary_name)
+
+  keep <- !duplicated(alias)
+  dup_aliases <- unique(alias[duplicated(alias)])
+  collisions <- dup_aliases[vapply(dup_aliases, function(a)
+    length(unique(primary[alias == a])) > 1L, logical(1))]
+  if (length(collisions) > 0) {
+    warning(length(collisions),
+            " alias string(s) map to multiple primaries; keeping first: ",
+            paste(utils::head(collisions, 10L), collapse = ", "))
+  }
+
+  lookup <- primary[keep]
+  names(lookup) <- alias[keep]
+  lookup
+}
+
+#' Canonicalize identifiers to primary germplasm names
+#'
+#' Replaces each identifier with its primary germplasm name when it is a known
+#' alias (primary or synonym); identifiers absent from the lookup are returned
+#' unchanged.
+#'
+#' @param sample_ids Character vector of identifiers (e.g. VCF sample names).
+#' @param alias_lookup A named character vector as returned by
+#'   \code{\link{build_synonym_lookup}} (names = aliases, values = primaries). An
+#'   empty vector returns \code{sample_ids} unchanged (fail-soft).
+#'
+#' @return A character vector the same length as \code{sample_ids}, with known
+#'   aliases relabeled to their primary name.
+#'
+#' @export
+canonicalize_to_primary <- function(sample_ids, alias_lookup) {
+  if (length(alias_lookup) == 0) return(sample_ids)
+  hit <- alias_lookup[sample_ids]
+  ifelse(is.na(hit), sample_ids, unname(hit))
+}
