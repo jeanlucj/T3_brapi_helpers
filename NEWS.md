@@ -1,13 +1,8 @@
-# T3_brapi_helpers 1.0.0
+# T3BrapiHelpers 1.0.0
 
 ## BREAKING CHANGES
 
 This is a major release with comprehensive breaking changes to align the entire package with snake_case naming conventions.
-
-### Package Renamed
-- **Package name**: `T3BrapiHelpers` → `T3_brapi_helpers`
-- Update your code: `library(T3BrapiHelpers)` → `library(T3_brapi_helpers)`
-- GitHub Pages URL updated: https://jeanlucj.github.io/T3_brapi_helpers/
 
 ### Function Names (All Renamed)
 All exported functions now use snake_case:
@@ -48,10 +43,10 @@ germ <- T3BrapiHelpers::getGermplasmFromSingleTrial("8128", conn)
 
 **After (v1.0.0):**
 ```r
-library(T3_brapi_helpers)
+library(T3BrapiHelpers)
 conn <- BrAPI::createBrAPIConnection("wheat.triticeaetoolbox.org", is_breedbase = TRUE)
-trials <- T3_brapi_helpers::get_all_trial_meta_data(conn, "Wheat")
-germ <- T3_brapi_helpers::get_germplasm_from_single_trial("8128", conn)
+trials <- T3BrapiHelpers::get_all_trial_meta_data(conn, "Wheat")
+germ <- T3BrapiHelpers::get_germplasm_from_single_trial("8128", conn)
 ```
 
 ### Internal Changes

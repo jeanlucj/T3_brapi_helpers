@@ -1,4 +1,4 @@
-# Using lintr for Code Style in T3_brapi_helpers
+# Using lintr for Code Style in T3BrapiHelpers
 
 ## What is lintr?
 

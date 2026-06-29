@@ -17,7 +17,7 @@ Authors@R:
 Description: More about what it does (maybe more than one line).
     Continuation lines should be indented.
 License: MIT + file LICENSE
-URL: https://jeanlucj.github.io/T3_brapi_helpers/
+URL: https://jeanlucj.github.io/T3BrapiHelpers/
 Imports: 
     BrAPI,
     dplyr,

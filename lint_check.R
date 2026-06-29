@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# Quick linting check script for T3_brapi_helpers
+# Quick linting check script for T3BrapiHelpers
 # Usage: Rscript lint_check.R [file1.R file2.R ...]
 #   or just: Rscript lint_check.R     (to lint entire package)
 
